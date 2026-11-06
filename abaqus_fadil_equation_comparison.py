@@ -14,8 +14,10 @@ class ViscoelasticIndentation:
         relaxation_times=None,
     ):
         self.indenter_radius = indenter_radius
-        self.poisson_ratio = poisson_ratio        
-        if youngs_modulus:
+        self.poisson_ratio = poisson_ratio
+        self.instantaneous_shear_modulus = None
+        
+        if youngs_modulus is not None:
             self.instantaneous_shear_modulus = youngs_modulus / (
                 2.0 * (1.0 + poisson_ratio)
             )
@@ -25,7 +27,7 @@ class ViscoelasticIndentation:
         )
         self.prony_coefficients = prony_coefficients
         self.relaxation_times = relaxation_times
-                
+        
         self.current_viewport_name = session.currentViewportName
         self.current_viewport = session.viewports[self.current_viewport_name]
         
@@ -38,18 +40,27 @@ class ViscoelasticIndentation:
                 "Active viewport is currently showing a Part or Assembly. "
                 "Please switch to the Visualization module before pasting."
             )
-            
+        
         self.step_items = self.odb.steps.items()
         self._indentation_depth_times = []
         self.depths = []
         self._normal_force_times = []
         self.forces = []
         self.times = None
+        self.visco_step_time_periods = []
         self.closed_form_shear_modulus = None
+        self.numerical_shear_modulus = None
+        self.prony_shear_modulus = None
+        self.numerical_fitted_forces = None
+        self.numerical_force_normalized_rmse = None
+        self.numerical_shear_modulus_normalized_rmse = None
+        self.closed_form_shear_modulus_normalized_rmse = None
+        
         self._u2_data = {}
         self._rf2_data = {}
         self.step_data = []
         self.start_time_hold = 0.0
+        
         for step_name, step in self.step_items:
             self.step_data.append(
                 (
@@ -61,22 +72,23 @@ class ViscoelasticIndentation:
             )
             self._u2_data[step_name] = {}
             self._rf2_data[step_name] = {}
+        
         self._extract_history_data()
         self._extract_indentation_data()
         
-        if (
-            self.depths is not None 
-            and self.forces is not None
-        ):
+        if self.times is not None and len(self.times) > 0:
             self.closed_form_shear_modulus = (
                 self.compute_closed_form_shear_modulus()
             )
             self.numerical_shear_modulus = (
                 self.compute_numerical_shear_modulus()
             )
-        
-        self.prony_shear_modulus = self.compute_prony_shear_modulus()
-    
+            
+            self.prony_shear_modulus = (
+                self.compute_prony_shear_modulus()
+            )
+            
+            self._compute_shear_modulus_errors()
     
     def _extract_history_data(self):
         """Internal helper to extract matching U2 and RF2 data."""
@@ -93,21 +105,27 @@ class ViscoelasticIndentation:
     
     def _extract_indentation_data(self):
         step_data_list = []
+        
         for data in self.step_data:
             if "*visco" in data[1].lower():
                 step_data_list.append(data)
+        
         if not step_data_list:
             print("Warning: No *Visco step was found")
             return
+        
         times = []
+        
         for step_data in step_data_list:
             step_name = step_data[0]
+            
             regions_u2 = self._u2_data[step_name].keys()
             if len(regions_u2) > 1:
                 print(
                     "Warning: More than one node found for the U2 output. "
                     "Ensure that the correct rigid body node has been selected"
                 )
+            
             regions_rf2 = self._rf2_data[step_name].keys()
             if len(regions_rf2) > 1:
                 print(
@@ -115,36 +133,45 @@ class ViscoelasticIndentation:
                     "All forces are summed. Ensure that the boundary sets "
                     "have been defined in the history output"
                 )
-            # 1. Extract and concatenate U2 data inline
+            
+            # Extract U2 data
             u2_region = next(iter(regions_u2))
             u2_array = np.array(self._u2_data[step_name][u2_region])
             
             self._indentation_depth_times.append(u2_array[:, 0])
             self.depths.append(abs(u2_array[:, 1]))
             
-            # 2. Extract first RF2 region for THIS step
+            # Extract first RF2 region for this step
             rf2_regions_list = list(regions_rf2)
             first_rf2_region = rf2_regions_list[0]
-            rf2_array = np.array(self._rf2_data[step_name][first_rf2_region])
+            rf2_array = np.array(
+                self._rf2_data[step_name][first_rf2_region]
+            )
             
             step_force_times = rf2_array[:, 0]
             step_forces = abs(rf2_array[:, 1])
+            
             if not np.array_equal(u2_array[:, 0], rf2_array[:, 0]):
                 print(
                     "Time samples do not match for the displacements and "
                     "normal forces"
                 )
+            
             times.append(step_force_times)
-            # 3. Sum any remaining RF2 regions for this step
+            
+            # Sum any remaining RF2 regions for this step
             for rf2_region in rf2_regions_list[1:]:
                 additional_rf2_array = np.array(
                     self._rf2_data[step_name][rf2_region]
                 )
                 step_forces += abs(additional_rf2_array[:, 1])
             
-            # 4. Concatenate RF2 data inline
             self._normal_force_times.append(step_force_times)
             self.forces.append(step_forces)
+            
+            # Store only the durations of the viscoelastic steps
+            self.visco_step_time_periods.append(step_data[3])
+        
         self.times = times
     
     def _get_indentation_history(self, method="prony"):
@@ -175,59 +202,116 @@ class ViscoelasticIndentation:
             depths.extend(step_depths)
             forces.extend(step_forces)
             
-            time_offset += self.step_data[i][3]
-            
+            time_offset += self.visco_step_time_periods[i]
+        
         return (
             np.asarray(times),
             np.asarray(depths),
             np.asarray(forces),
         )
     
+    def _compute_normalized_rmse(
+        self,
+        fitted_values,
+        reference_values,
+    ):
+        """Compute the normalised root mean square error in percent."""
+        reference_scale = np.max(np.abs(reference_values))
+        
+        if reference_scale == 0.0:
+            raise ValueError(
+                "The reference values cannot all be zero when computing NRMSE."
+            )
+        
+        return (
+            np.sqrt(
+                np.mean(
+                    (fitted_values - reference_values) ** 2
+                )
+            )
+            / reference_scale
+            * 100.0
+        )
     
-    def _get_relaxation_time_range(self, times, min_relaxation_time=1e-4):
+    def _compute_shear_modulus_errors(self):
+        """Compute NRMSE values for the extracted shear moduli."""
+        
+        times_prony, _, _ = self._get_indentation_history("prony")
+        times_closed, _, _ = self._get_indentation_history("closed")
+        
+        # Align the closed-form history with the global Prony time history.
+        closed_time_offset = sum(self.visco_step_time_periods[:-1])
+        
+        reference_closed_shear_modulus = np.interp(
+            times_closed + closed_time_offset,
+            times_prony,
+            self.prony_shear_modulus,
+        )
+        
+        self.closed_form_shear_modulus_normalized_rmse = (
+            self._compute_normalized_rmse(
+                self.closed_form_shear_modulus,
+                reference_closed_shear_modulus,
+            )
+        )
+        
+        self.numerical_shear_modulus_normalized_rmse = (
+            self._compute_normalized_rmse(
+                self.numerical_shear_modulus,
+                self.prony_shear_modulus,
+            )
+        )
+    
+    def _get_relaxation_time_range(
+        self,
+        times,
+        min_relaxation_time=1e-4,
+    ):
         """Return (shortest, longest) relaxation time for the Prony grid."""
         shortest = min(np.min(np.diff(times)), min_relaxation_time)
         longest = times[-1] - times[0]
+        
         if longest <= shortest:
             raise ValueError(
                 "Test duration is not longer than the minimum relaxation time"
             )
+        
         return shortest, longest
     
-    
     def _get_number_of_coefficients(
-        self, 
-        times, 
-        terms_per_decade=2, 
-        min_relaxation_time=1e-4
+        self,
+        times,
+        terms_per_decade=2,
+        min_relaxation_time=1e-4,
     ):
         """Number of Prony terms for the given density per decade of time."""
         shortest, longest = self._get_relaxation_time_range(
-            times, 
-            min_relaxation_time
+            times,
+            min_relaxation_time,
         )
         
         return int(
             np.ceil(terms_per_decade * np.log10(longest / shortest))
         ) + 1
     
-    
     def _get_prony_relaxation_times(
-        self, 
+        self,
         times,
-        number_of_relaxation_times, 
-        min_relaxation_time=1e-4
+        number_of_relaxation_times,
+        min_relaxation_time=1e-4,
     ):
         """Logarithmically spaced Prony relaxation times."""
         shortest, longest = self._get_relaxation_time_range(
             times,
-            min_relaxation_time
+            min_relaxation_time,
         )
+        
         return np.logspace(
-            np.log10(shortest), 
-            np.log10(longest), 
-            number_of_relaxation_times
+            np.log10(shortest),
+            np.log10(longest),
+            number_of_relaxation_times,
         )
+    
     def _compute_convolution_integral(
         self,
         times,
@@ -263,26 +347,21 @@ class ViscoelasticIndentation:
             )
         
         return convolution_integral
-        
-        
+    
     def _compute_force_matrix(
         self,
         times,
         depth_pow_3_2,
         relaxation_times,
         force_scale,
-    ):  
-        """Compute the normalised force matrix, so that
-            force_matrix @ [1, g_1, ..., g_n]  =  F(t) / force_scale
+    ):
+        """Compute the normalised force matrix."""
         
-        Column 0 multiplies the fixed coefficient 1 (instantaneous response);
-        the remaining columns multiply the Prony coefficients g_i.
-        """
         convolution_integrals = [
             self._compute_convolution_integral(
                 times,
                 depth_pow_3_2,
-                relaxation_time
+                relaxation_time,
             )
             for relaxation_time in relaxation_times
         ]
@@ -301,7 +380,6 @@ class ViscoelasticIndentation:
                 ]
             )
         )
-    
     
     def _compute_regularization_matrix(self, number_of_terms):
         """Compute the second-order regularisation matrix."""
@@ -338,7 +416,6 @@ class ViscoelasticIndentation:
         
         return objective / len(force_matrix)
     
-    
     def _objective_gradient(
         self,
         parameters,
@@ -347,22 +424,24 @@ class ViscoelasticIndentation:
         regularization_matrix,
         regularization_parameter,
     ):
-        """Gradient of ||Ax - b||² + λ²||Dx||² with respect to x."""
-        if len(parameters)< 2:
+        """Gradient of the regularized least-squares objective."""
+        
+        if len(parameters) < 2:
             raise ValueError(
                 "At least one Prony coefficient is required."
             )
+        
         residual = force_matrix @ parameters - normalized_forces
         
         gradient = (
             2.0 * force_matrix.T @ residual
             + 2.0 * regularization_parameter ** 2
-            * regularization_matrix.T @ (regularization_matrix @ parameters)
+            * regularization_matrix.T
+            @ (regularization_matrix @ parameters)
         )
         
         return gradient / len(force_matrix)
-        
-        
+    
     def _compute_numerical_coefficients(
         self,
         force_matrix,
@@ -375,7 +454,7 @@ class ViscoelasticIndentation:
         number_of_parameters = force_matrix.shape[1]
         
         initial_guess = np.zeros(number_of_parameters)
-        initial_guess[0] = 1.0 # Normalized instantaneous shear modulus 
+        initial_guess[0] = 1.0
         initial_guess[1:] = 0.5 / (number_of_parameters - 1)
         
         jacobian_constraint_instantaneous_modulus = np.zeros(
@@ -383,7 +462,9 @@ class ViscoelasticIndentation:
         )
         jacobian_constraint_instantaneous_modulus[0] = 1.0
         
-        jacobian_constraint_prony_coefficients = -np.ones(number_of_parameters)
+        jacobian_constraint_prony_coefficients = -np.ones(
+            number_of_parameters
+        )
         jacobian_constraint_prony_coefficients[0] = 0
         
         result = minimize(
@@ -402,26 +483,31 @@ class ViscoelasticIndentation:
                 {
                     "type": "eq",
                     "fun": lambda x: x[0] - 1.0,
-                    "jac": lambda x: jacobian_constraint_instantaneous_modulus
+                    "jac": lambda x: (
+                        jacobian_constraint_instantaneous_modulus
+                    ),
                 },
                 {
                     "type": "ineq",
                     "fun": lambda x: 1.0 - np.sum(x[1:]),
-                    "jac": lambda x: jacobian_constraint_prony_coefficients
+                    "jac": lambda x: (
+                        jacobian_constraint_prony_coefficients
+                    ),
                 },
             ],
             options={"maxiter": 1000, "ftol": 1e-15},
         )
-            
+        
         if not result.success:
             raise RuntimeError(result.message)
         
         return result.x
     
-    
     def compute_prony_shear_modulus(self):
-        """Computes the analytical Prony Series curve over the timeline."""
+        """Compute the analytical Prony series over the timeline."""
+        
         times, _, _ = self._get_indentation_history("prony")
+        
         if times is None:
             raise ValueError("No indentation time history is available.")
         
@@ -440,10 +526,15 @@ class ViscoelasticIndentation:
             )
         
         prony_shear_modulus = np.full_like(
-            times, self.instantaneous_shear_modulus, dtype=float
+            times,
+            self.instantaneous_shear_modulus,
+            dtype=float,
         )
         
-        for tau_i, g_i in zip(self.relaxation_times, self.prony_coefficients):
+        for tau_i, g_i in zip(
+            self.relaxation_times,
+            self.prony_coefficients,
+        ):
             prony_shear_modulus -= (
                 self.instantaneous_shear_modulus
                 * g_i
@@ -452,13 +543,10 @@ class ViscoelasticIndentation:
         
         return prony_shear_modulus
     
-    
     def compute_closed_form_shear_modulus(self):
-        """Compute the shear modulus using the Fadil et al. closed-form
-        solution."""
-        _, depths, forces = (
-            self._get_indentation_history("closed")
-        )
+        """Compute the shear modulus using the Fadil et al. closed-form solution."""
+        
+        _, depths, forces = self._get_indentation_history("closed")
         
         indentation_depth_constant = depths[0]
         
@@ -473,12 +561,12 @@ class ViscoelasticIndentation:
             * self.indenter_radius
             / contact_radius_constant**3
         )
+        
         return closed_form_shear_modulus
     
-    
     def compute_numerical_shear_modulus(self):
-        """Compute the shear modulus using the Fadil et al. numerical
-        scheme."""
+        """Compute the shear modulus using the Fadil et al. numerical scheme."""
+        
         times, depths, forces = (
             self._get_indentation_history("numerical")
         )
@@ -494,8 +582,8 @@ class ViscoelasticIndentation:
         )
         
         fitted_relaxation_times = self._get_prony_relaxation_times(
-            times, 
-            number_of_coefficients
+            times,
+            number_of_coefficients,
         )
         
         force_matrix = self._compute_force_matrix(
@@ -516,23 +604,38 @@ class ViscoelasticIndentation:
             0.0,
         )
         
+        # Reconstruct the indentation force using the fitted coefficients
+        fitted_forces = force_scale * (
+            force_matrix @ fitted_coefficients
+        )
+        self.numerical_fitted_forces = fitted_forces
+        
+        self.numerical_force_normalized_rmse = (
+            self._compute_normalized_rmse(
+                fitted_forces,
+                forces,
+            )
+        )
+        
         fitted_prony_coefficients = fitted_coefficients[1:]
         
         numerical_shear_modulus = np.full_like(
-            times, self.instantaneous_shear_modulus, dtype=float
+            times,
+            self.instantaneous_shear_modulus,
+            dtype=float,
         )
         
         for tau_i, g_i in zip(
-            fitted_relaxation_times, 
-            fitted_prony_coefficients
+            fitted_relaxation_times,
+            fitted_prony_coefficients,
         ):
             numerical_shear_modulus -= (
                 self.instantaneous_shear_modulus
                 * g_i
                 * (1 - np.exp(-times / tau_i))
             )
+        
         return numerical_shear_modulus
-    
     
     def plot_shear_moduli(self, xlog=True):
         """Plot Prony, closed-form, and numerical shear moduli."""
@@ -541,7 +644,7 @@ class ViscoelasticIndentation:
             print("Error: No data compiled to plot.")
             return
         
-        # Complete time history
+        # Complete time histories
         times_prony, _, _ = self._get_indentation_history("prony")
         prony_shear_modulus = self.prony_shear_modulus
         
@@ -561,7 +664,7 @@ class ViscoelasticIndentation:
             
             times_numerical = times_numerical[1:]
             numerical_shear_modulus = numerical_shear_modulus[1:]
-            
+        
         # Evenly spaced markers in the displayed coordinate system
         spacing = np.geomspace if xlog else np.linspace
         
@@ -622,7 +725,11 @@ class ViscoelasticIndentation:
                 mew=1.0,
                 markevery=list(marker_indices_closed),
                 zorder=4,
-                label="Fadil et al., Equation (16)",
+                label=(
+                    "Fadil et al., Equation (16)\n"
+                    f"NRMSE = "
+                    f"{self.closed_form_shear_modulus_normalized_rmse:.3f}%"
+                ),
             )
             
             ax.plot(
@@ -637,7 +744,11 @@ class ViscoelasticIndentation:
                 mew=1.0,
                 markevery=list(marker_indices_numerical),
                 zorder=4,
-                label="Fadil et al., Equation (13)",
+                label=(
+                    "Fadil et al., Equation (13)\n"
+                    f"NRMSE = "
+                    f"{self.numerical_shear_modulus_normalized_rmse:.3f}%"
+                ),
             )
             
             if xlog:
@@ -671,31 +782,32 @@ if __name__ == "__main__":
             0.0097,
             0.0042,
             0.0019,
-            
         ]
     )
     
     relaxation_times = np.array(
-    [
-        0.0010,
-        0.0036,
-        0.0132,
-        0.0479,
-        0.1741,
-        0.6325,
-        2.2974,
-        8.3453,
-        30.3143,
-        110.1169,
-        400.0000,
-    ])
+        [
+            0.0010,
+            0.0036,
+            0.0132,
+            0.0479,
+            0.1741,
+            0.6325,
+            2.2974,
+            8.3453,
+            30.3143,
+            110.1169,
+            400.0000,
+        ]
+    )
+    
     viscoelastic_indentation = ViscoelasticIndentation(
-        indenter_radius=indenter_radius, 
+        indenter_radius=indenter_radius,
         poisson_ratio=poisson_ratio,
         youngs_modulus=youngs_modulus,
         prony_coefficients=prony_coefficients,
-        relaxation_times=relaxation_times
+        relaxation_times=relaxation_times,
     )
+    
     viscoelastic_indentation.plot_shear_moduli()
     viscoelastic_indentation.plot_shear_moduli(False)
-    

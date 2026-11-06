@@ -1,4 +1,3 @@
-
 # Indentation Analysis
 
 Python tools for linear elastic and viscoelastic spherical indentation analysis.
@@ -7,13 +6,41 @@ Python tools for linear elastic and viscoelastic spherical indentation analysis.
 
 This repository contains analytical and numerical tools for spherical indentation analysis, including linear elastic contact mechanics, viscoelastic material characterization, and numerical implementation of methods proposed by [Fadil et al. (2017)](https://www.researchgate.net/publication/320319893_On_the_Measurement_of_two_Independent_Viscoelastic_Functions_with_Instrumented_Indentation_Tests).
 
+## Validation and Results
+
+### Linear Elastic Indentation
+
+The analytical solution for linear elastic spherical indentation is compared against finite element results obtained using Abaqus. The comparison includes contact radius, contact area, normal force, contact pressure, and radial tensile stress.
+
+![Hertz validation](figures/hertz_validation.png)
+
+Mesh convergence is investigated to evaluate the influence of the finite element discretisation on the predicted indentation response and stress distribution.
+
+![Mesh convergence](figures/mesh_convergence.png)
+
+### Viscoelastic Indentation
+
+The shear modulus extraction methods proposed by Fadil et al. (2017), Equations (13) and (16), are evaluated against the reference Prony series used to define the viscoelastic material model in Abaqus.
+
+The comparison is presented using both linear and logarithmic time axes.
+
+![Shear modulus comparison - linear time](figures/shear_modulus_linear.png)
+
+![Shear modulus comparison - logarithmic time](figures/shear_modulus_log.png)
+
+### Relaxation-Time Convergence
+
+The influence of the relaxation-time discretisation on the shear modulus predictions obtained using Equation (13) from Fadil et al. (2017) is investigated to establish a suitable number of Prony terms.
+
+![Relaxation-time convergence](figures/relaxation_time_convergence.png)
+
 ## Repository Contents
 
 | File | Description |
 |---|---|
 | `linear_elastic/linear_elastic_indentation.py` | Analytical solutions for linear elastic spherical indentation, including contact radius, contact area, normal force, contact pressure, and radial tensile stress. |
 | `viscoelastic/fadil_equation_13.py` | Numerical implementation of Equation (13) from Fadil et al. (2017), including force fitting and shear modulus extraction. |
-| `viscoelastic/fadil_equation_13_relaxation_time_convergence.py` | Investigates the influence of the number of relaxation-time decades on the accuracy and stability of shear modulus predictions obtained using Equation (13) from Fadil et al. (2017). Used to determine the relaxation-time discretisation adopted in both the standalone and Abaqus implementations. |
+| `viscoelastic/fadil_equation_13_relaxation_time_convergence.py` | Investigates the influence of the relaxation-time discretisation on the accuracy and stability of shear modulus predictions obtained using Equation (13). |
 | `abaqus/abaqus_fadil_equation_comparison.py` | Extracts indentation results from Abaqus and compares shear modulus predictions obtained using Equations (13) and (16) from Fadil et al. (2017) against the reference Prony series used to define the viscoelastic material model in Abaqus. |
 | `viscoelastic/force_indenter.csv` | Indentation force data used by the standalone viscoelastic analysis scripts. |
 
@@ -89,14 +116,6 @@ For future experimental applications, the regularization parameter will need to 
 
 ### Relaxation-Time Discretisation
 
-The relaxation-time convergence study investigates the influence of the number of logarithmic relaxation-time decades on the shear modulus predictions obtained using Equation (13) from Fadil et al. (2017).
-
-The study indicates that two relaxation-time decades provide a suitable balance between accuracy and stability. A discontinuity in the predicted shear modulus $G(t)$ is observed when increasing the number of coefficients from four to five within a single decade.
-
-To provide a safety margin and avoid relying on this potentially unstable discretisation, two relaxation-time decades are adopted in both the standalone and Abaqus implementations. This corresponds to two Prony terms per decade.
-
-### Relaxation-Time Discretisation
-
 The relaxation-time convergence study investigates the influence of the number of logarithmic relaxation-time decades and the number of Prony terms per decade on the shear modulus predictions obtained using Equation (13) from Fadil et al. (2017).
 
 The study indicates that two relaxation-time decades provide a suitable balance between accuracy and stability. A discontinuity in the predicted shear modulus $G(t)$ is observed when increasing the number of coefficients from four to five within a single decade.
@@ -107,7 +126,7 @@ To provide a safety margin and avoid relying on this potentially unstable discre
 
 The Python scripts can be executed individually for their respective analyses.
 
-### Standalone analysis
+### Standalone Analysis
 
 The scripts `fadil_equation_13.py` and `fadil_equation_13_relaxation_time_convergence.py` require `force_indenter.csv`, which should be located in the same directory as the scripts.
 
@@ -115,7 +134,7 @@ The scripts `fadil_equation_13.py` and `fadil_equation_13_relaxation_time_conver
 
 `fadil_equation_13_relaxation_time_convergence.py` investigates the influence of the relaxation-time discretisation on the predicted shear modulus. It is used to determine the number of relaxation-time decades adopted in the standalone and Abaqus implementations.
 
-### Abaqus analysis
+### Abaqus Analysis
 
 `abaqus_fadil_equation_comparison.py` is intended to be executed within the Abaqus/CAE Python environment and requires access to the relevant Abaqus output database (ODB).
 
@@ -134,4 +153,4 @@ Fadil, H., et al. (2017). [On the Measurement of two Independent Viscoelastic Fu
 
 ## Status
 
-This repository is under development. Numerical implementations and results are subject to ongoing validation.
+This repository is under development. The linear elastic implementation has been validated against analytical Hertz solutions. The viscoelastic implementations and their numerical stability are subject to ongoing validation.

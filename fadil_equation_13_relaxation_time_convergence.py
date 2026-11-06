@@ -1,3 +1,4 @@
+
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.special import dawsn
@@ -325,95 +326,109 @@ def compute_coefficients(
     return result.x
 
 
-def plot_mean_square_errors(
+def plot_normalized_rmse(
     number_of_coefficients_list,
-    force_mean_square_error_list,
-    shear_modulus_mean_square_error_list,
+    force_normalized_rmse_list,
+    shear_modulus_normalized_rmse_list,
     times_per_decade_list=None,
 ):
-    fig, axes = plt.subplots(1, 2, figsize=(10, 4))
+    """Plot normalised RMSE against the number of Prony terms."""
+    with plt.rc_context({
+        "font.family": "serif",
+        "mathtext.fontset": "stix",
+        "xtick.direction": "in",
+        "ytick.direction": "in",
+        "xtick.top": True,
+        "ytick.right": True,
+        "xtick.minor.visible": True,
+        "ytick.minor.visible": True,
+        "axes.linewidth": 1.0,
+        "font.size": 10,
+    }):
+        fig, axes = plt.subplots(1, 2, figsize=(10, 4))
 
-    golden_ratio = (1 + np.sqrt(5)) / 2
+        golden_ratio = (1 + np.sqrt(5)) / 2
 
-    for ax in axes:
-        ax.set_box_aspect(1 / golden_ratio)
+        for ax in axes:
+            ax.set_box_aspect(1 / golden_ratio)
 
-    axes[0].plot(
-        number_of_coefficients_list,
-        force_mean_square_error_list,
-        color="blue",
-        marker="o",
-        markerfacecolor="none",
-    )
-
-    axes[1].plot(
-        number_of_coefficients_list,
-        shear_modulus_mean_square_error_list,
-        color="blue",
-        marker="o",
-        markerfacecolor="none",
-    )
-
-    axes[0].set_ylabel("Normalized force MSE")
-    axes[1].set_ylabel("Normalized shear modulus MSE")
-
-    for ax in axes:
-        ax.set_xlabel("Number of Prony terms")
-
-        ax.tick_params(
-            axis="both",
-            which="both",
-            direction="in",
-            top=True,
-            right=True,
-            width=1.0,
+        axes[0].plot(
+            number_of_coefficients_list,
+            force_normalized_rmse_list,
+            color="blue",
+            marker="o",
+            markerfacecolor="none",
         )
 
-        ax.minorticks_on()
+        axes[1].plot(
+            number_of_coefficients_list,
+            shear_modulus_normalized_rmse_list,
+            color="blue",
+            marker="o",
+            markerfacecolor="none",
+        )
 
-        if times_per_decade_list is not None:
-            times_per_decade_array = np.asarray(
-                times_per_decade_list,
-                dtype=float,
-            )
+        axes[0].set_ylabel("Force NRMSE (%)")
+        axes[1].set_ylabel("Shear modulus NRMSE (%)")
 
-            number_of_coefficients_array = np.asarray(
-                number_of_coefficients_list,
-                dtype=float,
-            )
+        for ax in axes:
+            ax.set_xlabel("Number of Prony terms")
 
-            integer_values = np.arange(
-                1,
-                int(np.floor(np.max(times_per_decade_array))) + 1,
-            )
-
-            tick_positions = np.interp(
-                integer_values,
-                times_per_decade_array,
-                number_of_coefficients_array,
-            )
-
-            secondary_ax = ax.secondary_xaxis("top")
-
-            secondary_ax.set_xticks(tick_positions)
-            secondary_ax.set_xticklabels(
-                [str(value) for value in integer_values]
-            )
-
-            secondary_ax.set_xlabel("Prony terms per decade")
-
-            secondary_ax.tick_params(
-                axis="x",
-                which="major",
+            ax.tick_params(
+                axis="both",
+                which="both",
                 direction="in",
                 top=True,
-                bottom=False,
-                length=4,
+                right=True,
                 width=1.0,
             )
 
-    plt.tight_layout()
-    plt.show()
+            ax.minorticks_on()
+
+            if times_per_decade_list is not None:
+                times_per_decade_array = np.asarray(
+                    times_per_decade_list,
+                    dtype=float,
+                )
+
+                number_of_coefficients_array = np.asarray(
+                    number_of_coefficients_list,
+                    dtype=float,
+                )
+
+                integer_values = np.arange(
+                    1,
+                    int(np.floor(np.max(times_per_decade_array))) + 1,
+                )
+
+                tick_positions = np.interp(
+                    integer_values,
+                    times_per_decade_array,
+                    number_of_coefficients_array,
+                )
+
+                secondary_ax = ax.secondary_xaxis("top")
+
+                secondary_ax.set_xticks(tick_positions)
+                secondary_ax.set_xticklabels(
+                    [str(value) for value in integer_values]
+                )
+
+                secondary_ax.set_xlabel("Prony terms per decade")
+
+                secondary_ax.tick_params(
+                    axis="x",
+                    which="major",
+                    direction="in",
+                    top=True,
+                    bottom=False,
+                    length=4,
+                    width=1.0,
+                )
+
+        fig.tight_layout()
+        plt.show()
+
 
 if __name__ == "__main__":
     ramp_duration = 1.0
@@ -513,8 +528,8 @@ if __name__ == "__main__":
     number_of_coefficients_list = range(3, 31)
     times_per_decade_list = []
 
-    force_mean_square_error_list = []
-    shear_modulus_mean_square_error_list = []
+    force_normalized_rmse_list = []
+    shear_modulus_normalized_rmse_list = []
 
     for number_of_coefficients in number_of_coefficients_list:
         fitted_relaxation_times = get_prony_relaxation_times(
@@ -576,19 +591,21 @@ if __name__ == "__main__":
             numerical_shear_modulus - exact_shear_modulus
         )
 
-        force_mean_square_error = (
-            np.sum(force_residual**2)
-            / np.sum(exact_forces**2)
+        force_normalized_rmse = (
+            np.sqrt(np.mean(force_residual**2))
+            / np.max(np.abs(exact_forces))
+            * 100.0
         )
 
-        shear_modulus_mean_square_error = (
-            np.sum(shear_modulus_residual**2)
-            / np.sum(exact_shear_modulus**2)
+        shear_modulus_normalized_rmse = (
+            np.sqrt(np.mean(shear_modulus_residual**2))
+            / np.max(np.abs(exact_shear_modulus))
+            * 100.0
         )
 
-        force_mean_square_error_list.append(force_mean_square_error)
-        shear_modulus_mean_square_error_list.append(
-            shear_modulus_mean_square_error
+        force_normalized_rmse_list.append(force_normalized_rmse)
+        shear_modulus_normalized_rmse_list.append(
+            shear_modulus_normalized_rmse
         )
 
     print(
@@ -596,9 +613,9 @@ if __name__ == "__main__":
         np.round(times_per_decade_list, 2),
     )
 
-    plot_mean_square_errors(
+    plot_normalized_rmse(
         number_of_coefficients_list,
-        force_mean_square_error_list,
-        shear_modulus_mean_square_error_list,
+        force_normalized_rmse_list,
+        shear_modulus_normalized_rmse_list,
         times_per_decade_list,
     )

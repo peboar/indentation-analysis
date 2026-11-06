@@ -303,7 +303,27 @@ def plot_results(
         times_modulus = times
         fitted_modulus = fitted_shear_modulus
         reference_modulus = reference_shear_modulus
+        
+    normalized_modulus_rmse = (
+        np.sqrt(
+            np.mean(
+                (fitted_shear_modulus - reference_shear_modulus) ** 2
+            )
+        )
+        / np.max(np.abs(reference_shear_modulus))
+        * 100.0
+    )
 
+    normalized_force_rmse = (
+        np.sqrt(
+            np.mean(
+                (fitted_forces - reference_forces) ** 2
+            )
+        )
+        / np.max(np.abs(reference_forces))
+        * 100.0
+    )
+    
     spacing = np.geomspace if xlog else np.linspace
 
     marker_targets = spacing(
@@ -366,7 +386,10 @@ def plot_results(
             mew=1.0,
             markevery=list(marker_indices),
             zorder=4,
-            label="Fadil et al., Eq. (13)",
+            label=(
+                f"Fadil et al., Equation (13) "
+                f"NRMSE = {normalized_modulus_rmse:.2f}%"
+            ),
         )
 
         if xlog:
@@ -396,7 +419,10 @@ def plot_results(
             linestyle="--",
             linewidth=1.0,
             zorder=4,
-            label="Fadil et al., Eq. (13)",
+            label=(
+                f"Fadil et al., Equation (13) "
+                f"NRMSE = {normalized_force_rmse:.2f}%"
+            ),
         )
 
         axes[1].set_xlabel("Time (s)")
