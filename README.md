@@ -43,9 +43,9 @@ The numerical implementation of Fadil et al., Equation (13), is formulated as a 
 
 The instantaneous shear modulus is assumed to be known and fixed. For the current Abaqus validation, it is calculated from the Young's modulus and Poisson's ratio used to define the material model:
 
-\[
+$$
 G_0 = \frac{E}{2(1+\nu)}
-\]
+$$
 
 Only the Prony coefficients are determined through optimization.
 
@@ -53,15 +53,15 @@ Only the Prony coefficients are determined through optimization.
 
 The force response is expressed in matrix form:
 
-\[
+$$
 \mathbf{A}\mathbf{g} \approx \mathbf{F}_{\mathrm{norm}}
-\]
+$$
 
-where \(\mathbf{A}\) is the force matrix, \(\mathbf{g}\) contains the Prony coefficients, and \(\mathbf{F}_{\mathrm{norm}}\) contains the normalized force data.
+where $\mathbf{A}$ is the force matrix, $\mathbf{g}$ contains the Prony coefficients, and $\mathbf{F}_{\mathrm{norm}}$ contains the normalized force data.
 
 The coefficients are obtained by minimizing the mean squared error (MSE), with an optional smoothness regularization term:
 
-\[
+$$
 J(\mathbf{g}) =
 \frac{1}{N}
 \left[
@@ -69,9 +69,9 @@ J(\mathbf{g}) =
 +
 \lambda^2\left\|\mathbf{D}\mathbf{g}\right\|^2
 \right]
-\]
+$$
 
-where \(N\) is the number of data points, \(\lambda\) is the regularization parameter, and \(\mathbf{D}\) is a second-order difference matrix used to penalize variations between consecutive Prony coefficients. The regularization matrix acts on the Prony coefficients only; the normalized instantaneous contribution is fixed.
+where $N$ is the number of data points, $\lambda$ is the regularization parameter, and $\mathbf{D}$ is a second-order difference matrix used to penalize variations between consecutive Prony coefficients. The regularization matrix acts on the Prony coefficients only; the normalized instantaneous contribution is fixed.
 
 The optimization is performed using the Sequential Least Squares Programming (SLSQP) algorithm in SciPy, subject to the following constraints:
 
@@ -81,7 +81,7 @@ The optimization is performed using the Sequential Least Squares Programming (SL
 
 ### Regularization
 
-The regularization parameter is currently set to \(\lambda=0\), meaning that the optimization minimizes the ordinary mean squared force error without applying a smoothness penalty.
+The regularization parameter is currently set to $\lambda=0$, meaning that the optimization minimizes the ordinary mean squared force error without applying a smoothness penalty.
 
 This assumption is considered appropriate for the current validation, where the force data are extracted from Abaqus simulations and measurement noise is negligible. However, numerical errors associated with the finite element analysis may still be present.
 
@@ -91,7 +91,7 @@ For future experimental applications, the regularization parameter will need to 
 
 The relaxation-time convergence study investigates the influence of the number of logarithmic relaxation-time decades on the shear modulus predictions obtained using Equation (13) from Fadil et al. (2017).
 
-The study indicates that two relaxation-time decades provide a suitable balance between accuracy and stability. A discontinuity in the predicted shear modulus \(G(t)\) is observed when increasing the number of coefficients from four to five within a single decade.
+The study indicates that two relaxation-time decades provide a suitable balance between accuracy and stability. A discontinuity in the predicted shear modulus $G(t)$ is observed when increasing the number of coefficients from four to five within a single decade.
 
 To provide a safety margin and avoid relying on this potentially unstable discretisation, two relaxation-time decades are adopted in both the standalone and Abaqus implementations. This corresponds to two Prony terms per decade.
 
