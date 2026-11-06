@@ -1,20 +1,29 @@
+
 # Indentation Analysis
 
 Python tools for linear elastic and viscoelastic spherical indentation analysis.
 
 ## Overview
 
-This repository contains analytical and numerical tools for spherical indentation analysis, including linear elastic contact mechanics, viscoelastic material characterization, and numerical implementation of methods proposed by Fadil et al.
+This repository contains analytical and numerical tools for spherical indentation analysis, including linear elastic contact mechanics, viscoelastic material characterization, and numerical implementation of methods proposed by [Fadil et al. (2017)](https://www.researchgate.net/publication/320319893_On_the_Measurement_of_two_Independent_Viscoelastic_Functions_with_Instrumented_Indentation_Tests).
 
 ## Repository Contents
 
 | File | Description |
 |---|---|
 | `linear_elastic/linear_elastic_indentation.py` | Analytical solutions for linear elastic spherical indentation, including contact radius, contact area, normal force, contact pressure, and radial tensile stress. |
-| `viscoelastic/fadil_equation_13.py` | Numerical implementation of Fadil et al., Equation (13), including force fitting and shear modulus extraction. |
-| `viscoelastic/fadil_equation_13_relaxation_time_convergence.py` | Investigates the influence of the number of relaxation-time decades on the accuracy and stability of the shear modulus predictions obtained using Fadil et al., Equation (13). Used to determine the relaxation-time discretisation adopted in both the standalone and Abaqus implementations. |
-| `abaqus/abaqus_fadil_equation_comparison.py` | Extracts indentation results from Abaqus and compares shear modulus predictions from Fadil et al., Equations (13) and (16), against the reference Prony series used to define the viscoelastic material model in Abaqus. |
+| `viscoelastic/fadil_equation_13.py` | Numerical implementation of Equation (13) from Fadil et al. (2017), including force fitting and shear modulus extraction. |
+| `viscoelastic/fadil_equation_13_relaxation_time_convergence.py` | Investigates the influence of the number of relaxation-time decades on the accuracy and stability of shear modulus predictions obtained using Equation (13) from Fadil et al. (2017). Used to determine the relaxation-time discretisation adopted in both the standalone and Abaqus implementations. |
+| `abaqus/abaqus_fadil_equation_comparison.py` | Extracts indentation results from Abaqus and compares shear modulus predictions obtained using Equations (13) and (16) from Fadil et al. (2017) against the reference Prony series used to define the viscoelastic material model in Abaqus. |
 | `viscoelastic/force_indenter.csv` | Indentation force data used by the standalone viscoelastic analysis scripts. |
+
+## Theoretical Background
+
+The viscoelastic indentation methods implemented in this repository are based on the work of Fadil et al. (2017), particularly Equations (13) and (16), presented in:
+
+[Fadil et al. (2017) – On the Measurement of two Independent Viscoelastic Functions with Instrumented Indentation Tests](https://www.researchgate.net/publication/320319893_On_the_Measurement_of_two_Independent_Viscoelastic_Functions_with_Instrumented_Indentation_Tests).
+
+The numerical implementations in this repository follow these formulations, with the implementation details and assumptions described below.
 
 ## Requirements
 
@@ -80,11 +89,11 @@ For future experimental applications, the regularization parameter will need to 
 
 ### Relaxation-Time Discretisation
 
-The relaxation-time convergence study is used to determine the number of logarithmic relaxation-time decades adopted in the numerical implementation of Fadil et al., Equation (13).
+The relaxation-time convergence study investigates the influence of the number of logarithmic relaxation-time decades on the shear modulus predictions obtained using Equation (13) from Fadil et al. (2017).
 
 The study indicates that two relaxation-time decades provide a suitable balance between accuracy and stability. A discontinuity in the predicted shear modulus \(G(t)\) is observed when increasing the number of coefficients from four to five within a single decade.
 
-To provide a safety margin and avoid relying on this potentially unstable discretisation, two relaxation-time decades are used in both the standalone and Abaqus implementations. This corresponds to two Prony terms per decade.
+To provide a safety margin and avoid relying on this potentially unstable discretisation, two relaxation-time decades are adopted in both the standalone and Abaqus implementations. This corresponds to two Prony terms per decade.
 
 ## Usage
 
@@ -110,6 +119,10 @@ The script assumes that the indentation analysis consists of two load steps. The
 For Equation (16), only the holding phase is considered, regardless of the load-step configuration.
 
 The extracted shear modulus predictions are compared against the reference Prony series used to define the viscoelastic material model in Abaqus.
+
+## References
+
+Fadil, H., et al. (2017). [On the Measurement of two Independent Viscoelastic Functions with Instrumented Indentation Tests](https://www.researchgate.net/publication/320319893_On_the_Measurement_of_two_Independent_Viscoelastic_Functions_with_Instrumented_Indentation_Tests).
 
 ## Status
 
