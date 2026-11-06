@@ -25,6 +25,12 @@ The scripts use the following Python libraries:
 
 The Abaqus-related analysis requires an appropriate Abaqus Python environment.
 
+## Assumptions
+
+The numerical implementation of Fadil et al., Equation (13), assumes that the instantaneous shear modulus is known and fixed. The Prony coefficients are determined through constrained least-squares optimization, subject to non-negativity and a sum not exceeding unity.
+
+For the current Abaqus validation, the instantaneous shear modulus is calculated from the Young's modulus and Poisson's ratio used to define the material model.
+
 ## Usage
 
 The Python scripts can be executed individually for their respective analyses.
