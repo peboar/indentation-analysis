@@ -10,10 +10,11 @@ This repository contains analytical and numerical tools for spherical indentatio
 
 | File | Description |
 |---|---|
-| `linear_elastic_indentation.py` | Analytical solutions for linear elastic spherical indentation, including contact radius, contact area, normal force, contact pressure, and radial tensile stress. |
-| `fadil_equation_13.py` | Numerical implementation of Fadil et al., Equation (13), including force fitting and shear modulus extraction. |
-| `abaqus_fadil_equation_comparison.py` | Extracts indentation results from Abaqus and compares shear modulus predictions from Fadil et al., Equations (13) and (16), against the reference Prony series used to define the viscoelastic material model in Abaqus. |
-| `force_indenter.csv` | Indentation force data used by `fadil_equation_13.py`. |
+| `linear_elastic/linear_elastic_indentation.py` | Analytical solutions for linear elastic spherical indentation, including contact radius, contact area, normal force, contact pressure, and radial tensile stress. |
+| `viscoelastic/fadil_equation_13.py` | Numerical implementation of Fadil et al., Equation (13), including force fitting and shear modulus extraction. |
+| `viscoelastic/fadil_equation_13_relaxation_time_convergence.py` | Investigates the influence of the number of relaxation-time decades on the accuracy and stability of the shear modulus predictions obtained using Fadil et al., Equation (13). Used to determine the relaxation-time discretisation adopted in both the standalone and Abaqus implementations. |
+| `abaqus/abaqus_fadil_equation_comparison.py` | Extracts indentation results from Abaqus and compares shear modulus predictions from Fadil et al., Equations (13) and (16), against the reference Prony series used to define the viscoelastic material model in Abaqus. |
+| `viscoelastic/force_indenter.csv` | Indentation force data used by the standalone viscoelastic analysis scripts. |
 
 ## Requirements
 
@@ -25,17 +26,77 @@ The scripts use the following Python libraries:
 
 The Abaqus-related analysis requires an appropriate Abaqus Python environment.
 
-## Assumptions
+## Numerical Implementation and Assumptions
 
-The numerical implementation of Fadil et al., Equation (13), assumes that the instantaneous shear modulus is known and fixed. The Prony coefficients are determined through constrained least-squares optimization, subject to non-negativity and a sum not exceeding unity.
+The numerical implementation of Fadil et al., Equation (13), is formulated as a constrained least-squares problem to determine the Prony coefficients.
 
-For the current Abaqus validation, the instantaneous shear modulus is calculated from the Young's modulus and Poisson's ratio used to define the material model.
+### Instantaneous Shear Modulus
+
+The instantaneous shear modulus is assumed to be known and fixed. For the current Abaqus validation, it is calculated from the Young's modulus and Poisson's ratio used to define the material model:
+
+\[
+G_0 = \frac{E}{2(1+\nu)}
+\]
+
+Only the Prony coefficients are determined through optimization.
+
+### Optimization Procedure
+
+The force response is expressed in matrix form:
+
+\[
+\mathbf{A}\mathbf{g} \approx \mathbf{F}_{\mathrm{norm}}
+\]
+
+where \(\mathbf{A}\) is the force matrix, \(\mathbf{g}\) contains the Prony coefficients, and \(\mathbf{F}_{\mathrm{norm}}\) contains the normalized force data.
+
+The coefficients are obtained by minimizing the mean squared error (MSE), with an optional smoothness regularization term:
+
+\[
+J(\mathbf{g}) =
+\frac{1}{N}
+\left[
+\left\|\mathbf{A}\mathbf{g}-\mathbf{F}_{\mathrm{norm}}\right\|^2
++
+\lambda^2\left\|\mathbf{D}\mathbf{g}\right\|^2
+\right]
+\]
+
+where \(N\) is the number of data points, \(\lambda\) is the regularization parameter, and \(\mathbf{D}\) is a second-order difference matrix used to penalize variations between consecutive Prony coefficients. The regularization matrix acts on the Prony coefficients only; the normalized instantaneous contribution is fixed.
+
+The optimization is performed using the Sequential Least Squares Programming (SLSQP) algorithm in SciPy, subject to the following constraints:
+
+- Prony coefficients must be non-negative.
+- The sum of the Prony coefficients must not exceed unity.
+- The normalized instantaneous contribution is fixed to unity.
+
+### Regularization
+
+The regularization parameter is currently set to \(\lambda=0\), meaning that the optimization minimizes the ordinary mean squared force error without applying a smoothness penalty.
+
+This assumption is considered appropriate for the current validation, where the force data are extracted from Abaqus simulations and measurement noise is negligible. However, numerical errors associated with the finite element analysis may still be present.
+
+For future experimental applications, the regularization parameter will need to be reassessed to account for measurement noise and improve the stability and smoothness of the fitted Prony coefficients.
+
+### Relaxation-Time Discretisation
+
+The relaxation-time convergence study is used to determine the number of logarithmic relaxation-time decades adopted in the numerical implementation of Fadil et al., Equation (13).
+
+The study indicates that two relaxation-time decades provide a suitable balance between accuracy and stability. A discontinuity in the predicted shear modulus \(G(t)\) is observed when increasing the number of coefficients from four to five within a single decade.
+
+To provide a safety margin and avoid relying on this potentially unstable discretisation, two relaxation-time decades are used in both the standalone and Abaqus implementations. This corresponds to two Prony terms per decade.
 
 ## Usage
 
 The Python scripts can be executed individually for their respective analyses.
 
-`fadil_equation_13.py` requires `force_indenter.csv`, which should be located in the same directory as the script.
+### Standalone analysis
+
+The scripts `fadil_equation_13.py` and `fadil_equation_13_relaxation_time_convergence.py` require `force_indenter.csv`, which should be located in the same directory as the scripts.
+
+`fadil_equation_13.py` performs the numerical implementation of Fadil et al., Equation (13), including force fitting and shear modulus extraction.
+
+`fadil_equation_13_relaxation_time_convergence.py` investigates the influence of the relaxation-time discretisation on the predicted shear modulus. It is used to determine the number of relaxation-time decades adopted in the standalone and Abaqus implementations.
 
 ### Abaqus analysis
 
