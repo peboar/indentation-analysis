@@ -95,6 +95,14 @@ The study indicates that two relaxation-time decades provide a suitable balance 
 
 To provide a safety margin and avoid relying on this potentially unstable discretisation, two relaxation-time decades are adopted in both the standalone and Abaqus implementations. This corresponds to two Prony terms per decade.
 
+### Relaxation-Time Discretisation
+
+The relaxation-time convergence study investigates the influence of the number of logarithmic relaxation-time decades and the number of Prony terms per decade on the shear modulus predictions obtained using Equation (13) from Fadil et al. (2017).
+
+The study indicates that two relaxation-time decades provide a suitable balance between accuracy and stability. A discontinuity in the predicted shear modulus $G(t)$ is observed when increasing the number of coefficients from four to five within a single decade.
+
+To provide a safety margin and avoid relying on this potentially unstable discretisation, two relaxation-time decades with two Prony terms per decade are adopted in both the standalone and Abaqus implementations. This results in four Prony terms across the selected relaxation-time range.
+
 ## Usage
 
 The Python scripts can be executed individually for their respective analyses.
