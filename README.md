@@ -390,9 +390,11 @@ RF2 and U2 are history output at the indenter reference point. CAREA and CFN2 ar
 
 ### Scripts
 
-All results in this README are obtained with `abaqus_fadil_equation_comparison.py`. It reads the indentation history from the `.odb`, applies both methods and compares them with the reference Prony-series response.
+The loading-time results in this README are obtained with `abaqus_fadil_equation_comparison.py`. It reads the indentation history from the `.odb`, applies both methods and compares them with the reference Prony-series response.
 
 `fadil_equation_13.py` is a standalone script. It reads `force_indenter.csv`, fits the Prony coefficients and plots $`G(t)`$ and the fitted force. It is not used for the results shown here.
+
+`fadil_equation_13_relaxation_time_convergence.py` is used for the relaxation-time convergence study.
 
 ### Convolution-Based Method
 
