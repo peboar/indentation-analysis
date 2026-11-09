@@ -489,7 +489,7 @@ The generated input file initially contains:
 *Element, type=CAX4
 ```
 
-Change it to:
+Which should be changed to:
 
 ```text
 *Element, type=CINAX4
