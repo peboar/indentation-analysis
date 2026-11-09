@@ -79,7 +79,7 @@ Variables:
 
 Assumptions: linear viscoelasticity, rigid sphere, frictionless contact, time-independent $`\nu`$ and a non-decreasing contact area.
 
-### Closed-Form Expression: Equation (16) in Fadil et al.
+### Closed-Form Expression: Eq. (16) in Fadil et al.
 
 During the hold phase the depth is constant, and $`G(t)`$ follows directly from the measured force:
 
