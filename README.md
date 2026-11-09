@@ -113,8 +113,7 @@ For an isotropic linear-elastic material, $`E`$ and $`\nu`$ are used as the two 
 G_0=\frac{E}{2(1+\nu)}
 ```
 
-$`G_0`$ and $`\nu`$ are assumed known. The time-dependent response is represented by a Prony series.
-
+The instantaneous shear modulus, $G_0$, and Poisson's ratio, $\nu$, are assumed known. The time-dependent response is represented by a Prony series with logarithmically spaced relaxation times, $\tau_i$, selected based on the sampling interval and total test duration. The corresponding Prony coefficients, $g_i$, are determined through constrained least-squares fitting.
 ### Prony-Series Representation
 
 ```math
