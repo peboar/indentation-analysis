@@ -97147,7 +97147,7 @@ Indenter-1.CpMaster , CpSlave
 ** 
 *Step, name=Ramp, nlgeom=YES, inc=20000
 *Visco, cetol=0.001
-0.0001, 1., 1e-05, 1.0
+0.0001, 0.01, 1e-05, 0.01
 ** 
 ** BOUNDARY CONDITIONS
 ** 

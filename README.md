@@ -269,9 +269,10 @@ The normalized root mean square error (NRMSE) is used to quantify the difference
 $$
 \mathrm{NRMSE}=
 \frac{
-\sqrt{\mathrm{mean}\left[(G_{\mathrm{extracted}}-G_{\mathrm{reference}})^2\right]}
+\sqrt{\frac{1}{n}\sum_{i=1}^{n}
+\left(G_{\mathrm{extracted}}(t_i)-G_{\mathrm{reference}}(t_i)\right)^2}
 }{
-\max\left(|G_{\mathrm{reference}}|\right)
+\max_{1\leq i\leq n}|G_{\mathrm{reference}}(t_i)|
 }
 \times 100\%
 $$
@@ -280,9 +281,9 @@ The error is evaluated for both extraction methods and each loading duration.
 
 | Ramp duration | Equation (13) NRMSE (%) | Equation (16) NRMSE (%) |
 |---|---:|---:|
-| 1.0 s | TBD | TBD |
-| 0.1 s | TBD | TBD |
-| 0.01 s | TBD | TBD |
+| 1.0 s | 0.189 | 14.526 |
+| 0.1 s | 0.191 | 3.779 |
+| 0.01 s | 0.193 | 1.046 |
 
 ## Requirements
 
