@@ -99,8 +99,7 @@ so with $`D=2R`$:
 G(t)=\frac{3}{8}\frac{(1-\nu)R P(t)}{a^3}
 ```
 
-No inverse problem needs to be solved, but the contact radius must remain constant. The expression is therefore only valid for the hold phase, not during the ramp.
-
+No inverse problem needs to be solved, but the contact radius must remain constant. Consequently, the expression is only valid during the hold phase and not during the loading ramp. It provides an exact solution only in the limiting case of instantaneous loading.
 ### Material Properties and Elastic Constants
 
 For an isotropic linear-elastic material, $`E`$ and $`\nu`$ are used as the two independent constants.
