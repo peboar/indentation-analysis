@@ -40,19 +40,424 @@ Indentation-Analysis/
 
 ## Theoretical Background
 
-Theoretical assumption: The derivation of Equations (13) and (16) requires a time-independent Poisson's ratio. Consequently, the methods are applicable under the assumption that Poisson's ratio remains constant throughout the viscoelastic response.
-Two approaches are considered:
+### Spherical Indentation of Linear-Viscoelastic Materials
 
-- **Equation (13):** A numerical method for recovering the viscoelastic relaxation response from indentation data.
-- **Equation (16):** A closed-form expression for estimating the shear relaxation modulus during the holding phase of an indentation test.
+The relationship between indentation force and indentation depth for a spherical indenter can be described using linear viscoelastic theory. Following the formulation presented by Fadil et al. (2017), and assuming a time-independent Poisson's ratio, the indentation force is expressed as
 
-The methods are implemented independently to allow comparison of their performance and numerical behavior.
+$$
+P(t)=
+\frac{8\sqrt{R}}{3(1-\nu)}
+\int_0^t G(t-\tau)
+\frac{d h^{3/2}(\tau)}{d\tau}\,d\tau.
+\tag{1}
+$$
 
-**Assumption:** Both Equations (13) and (16) are derived under the assumption of a time-independent Poisson's ratio. Consequently, the implementations in this repository assume that Poisson's ratio remains constant throughout the viscoelastic response.
+Here:
 
-### Applicability of Equation (13)
+- \(P(t)\) is the indentation force at time \(t\).
+- \(R\) is the radius of the spherical indenter.
+- \(\nu\) is the Poisson's ratio, assumed to be independent of time.
+- \(G(t)\) is the shear relaxation modulus.
+- \(h(t)\) is the indentation depth.
+- \(\tau\) is the integration variable, representing an earlier time.
+- \(t-\tau\) is the elapsed time over which the material has relaxed.
 
-Equation (13) requires a monotonically increasing indentation history. Consequently, the numerical implementation is applied to indentation histories consisting of a loading phase followed by a holding phase. The method is not intended for unloading or non-monotonic indentation histories.
+For convenience, the geometric factor is defined as
+
+$$
+C=\frac{8\sqrt{R}}{3(1-\nu)}.
+\tag{2}
+$$
+
+Equation (1) can consequently be written as
+
+$$
+P(t)=C\int_0^t G(t-\tau)
+\frac{d h^{3/2}(\tau)}{d\tau}\,d\tau.
+\tag{3}
+$$
+
+The convolution integral accounts for the time-dependent contribution of the material response to the indentation history. Each increment in indentation contributes to the force according to the relaxation modulus evaluated at the elapsed time since that increment occurred.
+
+The formulation assumes linear viscoelasticity and a time-independent Poisson's ratio. These assumptions are important when interpreting the applicability of the resulting material properties.
+
+### Prony-Series Representation of the Relaxation Modulus
+
+For the numerical implementation, the shear relaxation modulus is approximated using a finite Prony series:
+
+$$
+G(t)=G_0\left[
+1-\sum_{i=1}^{p}g_i
+\left(1-e^{-t/\tau_i}\right)
+\right].
+\tag{4}
+$$
+
+Here:
+
+- \(G_0\) is the instantaneous shear modulus.
+- \(p\) is the number of Prony terms.
+- \(g_i\) is the normalized Prony coefficient associated with term \(i\).
+- \(\tau_i\) is the corresponding relaxation time.
+- \(t\) is time.
+
+The coefficients \(g_i\) describe the relative contributions of the individual relaxation terms, while the relaxation times \(\tau_i\) determine their characteristic timescales.
+
+The long-term shear modulus is obtained by evaluating Equation (4) as \(t\) approaches infinity:
+
+$$
+G_\infty=G_0\left(1-\sum_{i=1}^{p}g_i\right).
+\tag{5}
+$$
+
+Consequently, physically admissible relaxation coefficients are subject to the constraints
+
+$$
+g_i\geq 0,
+\qquad
+\sum_{i=1}^{p}g_i\leq 1.
+\tag{6}
+$$
+
+The Prony-series representation is an approximation introduced for the numerical identification of the relaxation response. The number of terms and the associated relaxation times determine the resolution of the approximated relaxation spectrum.
+
+### Numerical Evaluation of the Convolution Integral
+
+Substituting the Prony-series representation from Equation (4) into the force expression in Equation (3) gives
+
+$$
+\begin{aligned}
+P(t)=CG_0\int_0^t
+\Bigg[
+1-\sum_{i=1}^{p}g_i
+\left(1-e^{-(t-\tau)/\tau_i}\right)
+\Bigg]
+\frac{d h^{3/2}(\tau)}{d\tau}\,d\tau.
+\end{aligned}
+\tag{7}
+$$
+
+To evaluate the convolution integral efficiently, an individual integral is defined for each Prony term:
+
+$$
+J_i(t)=
+\int_0^t e^{-(t-\tau)/\tau_i}
+\frac{d h^{3/2}(\tau)}{d\tau}\,d\tau.
+\tag{8}
+$$
+
+Rather than evaluating this integral independently over the complete indentation history at every time point, a recursive expression can be derived.
+
+Consider a discrete sequence of time points \(t_0,t_1,\ldots,t_n\). At time \(t_n\), the integral can be divided into two intervals:
+
+$$
+\begin{aligned}
+J_i(t_n)
+={}&
+\int_0^{t_{n-1}}
+e^{-(t_n-\tau)/\tau_i}
+\frac{d h^{3/2}(\tau)}{d\tau}\,d\tau\\
+&+
+\int_{t_{n-1}}^{t_n}
+e^{-(t_n-\tau)/\tau_i}
+\frac{d h^{3/2}(\tau)}{d\tau}\,d\tau.
+\end{aligned}
+\tag{9}
+$$
+
+Using the identity
+
+$$
+e^{-(t_n-\tau)/\tau_i}
+=
+e^{-(t_n-t_{n-1})/\tau_i}
+e^{-(t_{n-1}-\tau)/\tau_i},
+$$
+
+the first integral can be expressed using the previously evaluated convolution integral:
+
+$$
+\begin{aligned}
+J_i(t_n)
+={}&e^{-(t_n-t_{n-1})/\tau_i}J_i(t_{n-1})\\
+&+
+\int_{t_{n-1}}^{t_n}
+e^{-(t_n-\tau)/\tau_i}
+\frac{d h^{3/2}(\tau)}{d\tau}\,d\tau.
+\end{aligned}
+\tag{10}
+$$
+
+#### Piecewise-Linear Approximation
+
+To evaluate the remaining integral, the indentation history is approximated as piecewise linear over each time interval. Specifically, \(h^{3/2}(t)\) is assumed to vary linearly between consecutive sampling points. Its derivative is therefore approximated by
+
+$$
+\frac{d h^{3/2}(\tau)}{d\tau}
+\approx
+\frac{h_n^{3/2}-h_{n-1}^{3/2}}
+{t_n-t_{n-1}},
+\tag{11}
+$$
+
+where \(h_n=h(t_n)\) denotes the indentation depth at time \(t_n\).
+
+Substituting this approximation into Equation (10) gives
+
+$$
+\begin{aligned}
+J_i(t_n)
+={}&e^{-(t_n-t_{n-1})/\tau_i}J_i(t_{n-1})\\
+&+
+\frac{h_n^{3/2}-h_{n-1}^{3/2}}
+{t_n-t_{n-1}}
+\int_{t_{n-1}}^{t_n}
+e^{-(t_n-\tau)/\tau_i}\,d\tau.
+\end{aligned}
+\tag{12}
+$$
+
+Evaluating the remaining integral results in the recurrence relation
+
+$$
+\boxed{
+\begin{aligned}
+J_i(t_n)
+={}&e^{-\Delta t_n/\tau_i}J_i(t_{n-1})\\
+&+
+\frac{\tau_i}{\Delta t_n}
+\left(h_n^{3/2}-h_{n-1}^{3/2}\right)
+\left(1-e^{-\Delta t_n/\tau_i}\right),
+\end{aligned}
+}
+\tag{13}
+$$
+
+where
+
+$$
+\Delta t_n=t_n-t_{n-1}.
+\tag{14}
+$$
+
+This expression allows the convolution integral to be evaluated sequentially in time. Only the previously calculated value \(J_i(t_{n-1})\) is required to obtain the next value.
+
+The initial condition is
+
+$$
+J_i(t_0)=0,
+\tag{15}
+$$
+
+assuming that the integration starts at zero time.
+
+The exponential integration in Equation (13) is exact under the piecewise-linear approximation of \(h^{3/2}(t)\). However, this does not imply that the actual indentation depth \(h(t)\) varies linearly in the transformed quantity \(h^{3/2}(t)\).
+
+### Force Expression
+
+Returning to Equation (7), the force can be separated into individual contributions:
+
+$$
+\begin{aligned}
+P(t)=CG_0\Bigg[
+&\int_0^t\frac{d h^{3/2}(\tau)}{d\tau}\,d\tau\\
+&-\sum_{i=1}^{p}g_i
+\int_0^t
+\left(1-e^{-(t-\tau)/\tau_i}\right)
+\frac{d h^{3/2}(\tau)}{d\tau}\,d\tau
+\Bigg].
+\end{aligned}
+\tag{16}
+$$
+
+Using the fundamental theorem of calculus,
+
+$$
+\int_0^t\frac{d h^{3/2}(\tau)}{d\tau}\,d\tau
+=
+h^{3/2}(t)-h^{3/2}(0).
+$$
+
+Assuming zero initial indentation, \(h(0)=0\), and applying the definition of \(J_i(t)\), the force becomes
+
+$$
+\begin{aligned}
+P(t)
+=CG_0\Bigg[
+h^{3/2}(t)
+-\sum_{i=1}^{p}g_i
+\left(h^{3/2}(t)-J_i(t)\right)
+\Bigg].
+\end{aligned}
+\tag{17}
+$$
+
+Rearranging the expression gives
+
+$$
+\boxed{
+P(t)=CG_0\left[
+h^{3/2}(t)+
+\sum_{i=1}^{p}g_i
+\left(J_i(t)-h^{3/2}(t)\right)
+\right].
+}
+\tag{18}
+$$
+
+This expression is particularly useful because the indentation force is now written linearly in terms of the unknown Prony coefficients \(g_i\).
+
+### Matrix Formulation
+
+Evaluating Equation (18) at the discrete time points \(t_1,\ldots,t_n\) allows the force expression to be written in matrix form:
+
+$$
+\mathbf{P}=CG_0\mathbf{A}
+\begin{bmatrix}
+1\\
+g_1\\
+\vdots\\
+g_p
+\end{bmatrix},
+\tag{19}
+$$
+
+where \(\mathbf{P}\) is the vector of indentation forces and \(\mathbf{A}\) is the system matrix:
+
+$$
+\mathbf{A}=
+\begin{bmatrix}
+h_1^{3/2} & J_1(t_1)-h_1^{3/2} & \cdots & J_p(t_1)-h_1^{3/2}\\
+h_2^{3/2} & J_1(t_2)-h_2^{3/2} & \cdots & J_p(t_2)-h_2^{3/2}\\
+\vdots & \vdots & \ddots & \vdots\\
+h_n^{3/2} & J_1(t_n)-h_n^{3/2} & \cdots & J_p(t_n)-h_n^{3/2}
+\end{bmatrix}.
+\tag{20}
+$$
+
+The first column contains the squared-transformation indentation history \(h_j^{3/2}\), while the remaining columns contain the corresponding convolution integrals shifted by the indentation history.
+
+The coefficient vector contains a fixed first entry equal to one, followed by the unknown Prony coefficients.
+
+For the optimization, it is convenient to separate the known first column from the unknown coefficients. Define
+
+$$
+\mathbf{h}=
+\begin{bmatrix}
+h_1^{3/2}\\
+h_2^{3/2}\\
+\vdots\\
+h_n^{3/2}
+\end{bmatrix},
+$$
+
+and construct the reduced system matrix
+
+$$
+\mathbf{B}=
+\begin{bmatrix}
+J_1(t_1)-h_1^{3/2} & \cdots & J_p(t_1)-h_1^{3/2}\\
+J_1(t_2)-h_2^{3/2} & \cdots & J_p(t_2)-h_2^{3/2}\\
+\vdots & \ddots & \vdots\\
+J_1(t_n)-h_n^{3/2} & \cdots & J_p(t_n)-h_n^{3/2}
+\end{bmatrix}.
+$$
+
+The reduced system is then
+
+$$
+\underbrace{
+\frac{\mathbf{P}}{CG_0}-\mathbf{h}
+}_{\mathbf{b}}
+=
+\mathbf{B}\mathbf{g},
+\tag{21}
+$$
+
+where
+
+$$
+\mathbf{g}=
+\begin{bmatrix}
+g_1\\
+g_2\\
+\vdots\\
+g_p
+\end{bmatrix}
+$$
+
+contains the unknown Prony coefficients.
+
+The coefficients are determined by solving a constrained least-squares optimization problem:
+
+$$
+\boxed{
+\min_{\mathbf{g}}
+\left\|\mathbf{B}\mathbf{g}-\mathbf{b}\right\|^2
++
+\lambda^2\left\|\mathbf{D}\mathbf{g}\right\|^2
+}
+\tag{22}
+$$
+
+subject to
+
+$$
+g_i\geq 0,
+\qquad
+\sum_{i=1}^{p}g_i\leq 1.
+\tag{23}
+$$
+
+Here:
+
+- \(\mathbf{B}\) is the reduced system matrix constructed from the indentation history.
+- \(\mathbf{b}\) is the normalized force vector after subtracting the instantaneous elastic contribution.
+- \(\mathbf{g}\) contains the unknown Prony coefficients.
+- \(\mathbf{D}\) is a second-difference matrix used for optional smoothness regularization.
+- \(\lambda\) controls the regularization strength.
+
+The instantaneous shear modulus \(G_0\) and the relaxation times \(\tau_i\) are assumed to be known. Consequently, only the Prony coefficients are determined through the optimization.
+
+The regularization parameter is currently set to \(\lambda=0\), meaning that no additional smoothness regularization is applied.
+
+## Applicability of Equation (13)
+
+Equation (13) of Fadil et al. requires a monotonically increasing indentation history. Consequently, the numerical implementation is applied to indentation histories consisting of a loading phase followed by a holding phase.
+
+The method is not intended for unloading or non-monotonic indentation histories.
+
+The recursive convolution formulation presented above is an implementation of the Prony-series-based numerical approach. The equation numbering in this README refers to the equations presented in this document and should not be confused with equation numbers in the original publication.
+
+### Equation (16): Closed-Form Method
+
+Equation (16) in Fadil et al. provides a closed-form expression for estimating the shear relaxation modulus during the holding phase of an indentation test.
+
+For a spherical indenter, the contact radius is calculated as
+
+$$
+a=\sqrt{Rh}.
+$$
+
+where \(R\) is the indenter radius and \(h\) is the indentation depth.
+
+The shear relaxation modulus is then estimated as
+
+$$
+G(t)=\frac{3}{8}\frac{(1-\nu)RF(t)}{a^3}.
+$$
+
+where \(F(t)\) is the measured indentation force.
+
+Equation (16) is evaluated using the holding phase only.
+
+### Relaxation-Time Discretization
+
+The numerical implementation of Equation (13) requires a discretization of the relaxation-time spectrum.
+
+The relaxation times are distributed logarithmically over the selected time range. The number of relaxation times is varied to investigate the influence of the discretization on the recovered shear relaxation modulus.
+
+A convergence study is performed to assess the influence of the number of relaxation times per decade on the numerical solution. The selected discretization is intended to provide a balance between numerical stability and sufficient resolution of the relaxation response.
 
 ## Finite Element Model
 
@@ -84,7 +489,7 @@ The generated input file initially contains:
 *Element, type=CAX4
 ```
 
-to:
+Change it to:
 
 ```text
 *Element, type=CINAX4
@@ -102,9 +507,9 @@ The specimen is modeled as a linear viscoelastic material with the following ela
 
 | Property | Value |
 |---|---:|
-| Young's modulus, $E$ | 476.0142 MPa |
-| Poisson's ratio, $\nu$ | 0.48 |
-| Initial shear modulus, $G_0$ | 160.8156 MPa |
+| Young's modulus, \(E\) | 476.0142 MPa |
+| Poisson's ratio, \(\nu\) | 0.48 |
+| Initial shear modulus, \(G_0\) | 160.8156 MPa |
 
 The initial shear modulus is calculated from the elastic properties:
 
@@ -114,7 +519,7 @@ $$
 
 The time-dependent shear response is described by an 11-term Prony series:
 
-| $i$ | $g_i$ | $\tau_i$ (s) |
+| \(i\) | \(g_i\) | \(\tau_i\) (s) |
 |---:|---:|---:|
 | 1 | 0.1621 | 0.0010 |
 | 2 | 0.2670 | 0.0036 |
@@ -131,11 +536,13 @@ The time-dependent shear response is described by an 11-term Prony series:
 The Prony coefficients describe the normalized shear relaxation function:
 
 $$
-G(t)=G_0\left[1-\sum_{i=1}^{N}g_i
-\left(1-\exp\left(-\frac{t}{\tau_i}\right)\right)\right]
+G(t)=G_0\left[
+1-\sum_{i=1}^{N}g_i
+\left(1-\exp\left(-\frac{t}{\tau_i}\right)\right)
+\right].
 $$
 
-where $G_0$ is the instantaneous shear modulus, $g_i$ are the Prony coefficients, and $\tau_i$ are the corresponding relaxation times.
+where \(G_0\) is the instantaneous shear modulus, \(g_i\) are the Prony coefficients, and \(\tau_i\) are the corresponding relaxation times.
 
 ### Analysis Steps
 
@@ -173,56 +580,43 @@ The reaction force and displacement are recorded as history output at the indent
 
 Equation (13) is implemented as a numerical procedure for recovering the shear relaxation modulus from indentation force and displacement data.
 
-The relaxation response is represented using a discretized Prony series. The corresponding coefficients are determined through constrained least-squares optimization:
+The relaxation response is represented using a discretized Prony series. The corresponding coefficients are determined through constrained least-squares optimization, as described in the theoretical background.
+
+The optimization uses the reduced system
 
 $$
-\min_{\mathbf{g}}
-\left\|\mathbf{A}\mathbf{g}-\mathbf{F}_{\mathrm{norm}}\right\|^2
-+
-\lambda^2\left\|\mathbf{D}\mathbf{g}\right\|^2
+\mathbf{b}=\mathbf{B}\mathbf{g},
 $$
 
-where:
+where the matrix is constructed from the indentation history and the prescribed relaxation times.
 
-- $\mathbf{A}$ is the system matrix constructed from the indentation history.
-- $\mathbf{g}$ contains the unknown Prony coefficients.
-- $\mathbf{F}_{\mathrm{norm}}$ is the normalized indentation force.
-- $\mathbf{D}$ is a second-difference matrix used for optional smoothness regularization.
-- $\lambda$ controls the regularization strength.
-
-The optimization is subject to the constraints:
+The optimization is subject to the constraints
 
 $$
-g_i \geq 0
-$$
-
-$$
-\sum_i g_i \leq 1
+g_i\geq 0,
+\qquad
+\sum_{i=1}^{p}g_i\leq 1.
 $$
 
 The instantaneous shear modulus is assumed to be known and is calculated from the elastic properties.
 
-The regularization parameter is currently set to $\lambda=0$, meaning that no additional smoothness regularization is applied.
+The regularization parameter is currently set to \(\lambda=0\), meaning that no additional smoothness regularization is applied.
 
 ### Equation (16): Closed-Form Method
 
 Equation (16) provides a closed-form expression for estimating the shear relaxation modulus during the holding phase of an indentation test.
 
-For a spherical indenter, the contact radius is calculated as:
+For a spherical indenter, the contact radius is calculated as
 
 $$
-a=\sqrt{Rh}
+a=\sqrt{Rh}.
 $$
 
-where $R$ is the indenter radius and $h$ is the indentation depth.
-
-The shear relaxation modulus is then estimated as:
+The shear relaxation modulus is then estimated as
 
 $$
-G(t)=\frac{3}{8}\frac{(1-\nu)RF(t)}{a^3}
+G(t)=\frac{3}{8}\frac{(1-\nu)RF(t)}{a^3}.
 $$
-
-where $F(t)$ is the measured indentation force.
 
 Equation (16) is evaluated using the holding phase only.
 
@@ -274,7 +668,7 @@ $$
 }{
 \max_{1\leq i\leq n}|G_{\mathrm{reference}}(t_i)|
 }
-\times 100\%
+\times 100\%.
 $$
 
 The error is evaluated for both extraction methods and each loading duration.
