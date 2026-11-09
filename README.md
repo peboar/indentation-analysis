@@ -454,7 +454,7 @@ G_{\mathrm{reference}}(t_i)
 \times 100\%
 ```
 
-| Ramp duration | Convolution-based NRMSE (%) | Closed-form NRMSE (%) |
+| Ramp duration | Fadil et al., Eq. (13) NRMSE (%) |  Fadil et al., Eq. (16) NRMSE (%) |
 |---|---:|---:|
 | 1.0 s | 0.189 | 14.526 |
 | 0.1 s | 0.191 | 3.779 |
