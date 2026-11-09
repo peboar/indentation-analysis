@@ -64,36 +64,36 @@ P(t)&=
 \end{aligned}
 ```
 
-During a constant-depth hold, the derivative of \(h^{3/2}\) is zero and the force evolution is governed by relaxation from the preceding loading.
+During a constant-depth hold, the derivative of $h^{3/2}$ is zero and the force evolution is governed by relaxation from the preceding loading.
 
 Variables:
 
-- \(P(t)\): indentation force
-- \(R\): indenter radius
-- \(\nu\): Poisson's ratio (time-independent)
-- \(G(t)\): shear relaxation modulus
-- \(h(t)\): indentation depth
-- \(\tau\): integration variable (earlier time)
-- \(t_1\): transition time between the two stages
-- \(h_1(t)\), \(h_2(t)\): depth histories of the two stages
+- $P(t)$: indentation force
+- $R$: indenter radius
+- $\nu$: Poisson's ratio (time-independent)
+- $G(t)$: shear relaxation modulus
+- $h(t)$: indentation depth
+- $\tau$: integration variable (earlier time)
+- $t_1$: transition time between the two stages
+- $h_1(t)$, $h_2(t)$: depth histories of the two stages
 
-Assumptions: linear viscoelasticity, rigid sphere, frictionless contact, time-independent \(\nu\), and a non-decreasing contact area.
+Assumptions: linear viscoelasticity, rigid sphere, frictionless contact, time-independent $\nu$ and a non-decreasing contact area.
 
 ### Closed-Form Expression: Eq. (16) in Fadil et al.
 
-During the hold phase the depth is constant, and \(G(t)\) follows directly from the measured force:
+During the hold phase the depth is constant, and $G(t)$ follows directly from the measured force:
 
 ```math
 G(t)=\frac{3}{16}\frac{(1-\nu)D}{a^3}P(t)
 ```
 
-where \(D\) is the indenter diameter and \(a\) is the contact radius. For a sphere,
+with $D$ the indenter diameter and $a$ the contact radius. For a sphere,
 
 ```math
 a=\sqrt{Rh}
 ```
 
-so with \(D=2R\):
+so with $D=2R$:
 
 ```math
 G(t)=\frac{3}{8}\frac{(1-\nu)R P(t)}{a^3}
@@ -103,18 +103,18 @@ No inverse problem needs to be solved, but the contact radius must remain consta
 
 ### Material Properties and Elastic Constants
 
-For an isotropic linear-elastic material, \(E\) and \(\nu\) are used as the two independent constants.
+For an isotropic linear-elastic material, $E$ and $\nu$ are used as the two independent constants.
 
-- \(E\): Young's modulus
-- \(\nu\): Poisson's ratio (time-independent)
-- \(G\): shear modulus
-- \(G_0\): instantaneous shear modulus
+- $E$: Young's modulus
+- $\nu$: Poisson's ratio (time-independent)
+- $G$: shear modulus
+- $G_0$: instantaneous shear modulus
 
 ```math
 G_0=\frac{E}{2(1+\nu)}
 ```
 
-\(G_0\) and \(\nu\) are assumed known. The time-dependent response is represented by a Prony series.
+$G_0$ and $\nu$ are assumed known. The time-dependent response is represented by a Prony series.
 
 ### Prony-Series Representation
 
@@ -125,9 +125,9 @@ G(t)=G_0\left[
 \right]
 ```
 
-- \(p\): number of Prony terms
-- \(g_i\): normalized Prony coefficient of term \(i\)
-- \(\tau_i\): relaxation time of term \(i\)
+- $p$: number of Prony terms
+- $g_i$: normalized Prony coefficient of term $i$
+- $\tau_i$: relaxation time of term $i$
 
 The long-term modulus is
 
@@ -170,7 +170,7 @@ J_i(t)=
 \frac{d h^{3/2}(\tau)}{d\tau}\,d\tau
 ```
 
-For discrete times \(t_0,t_1,\ldots,t_n\), splitting the integral at \(t_{n-1}\) and using
+For discrete times $t_0,t_1,\ldots,t_n$, splitting the integral at $t_{n-1}$ and using
 
 ```math
 e^{-(t_n-\tau)/\tau_i}
@@ -182,19 +182,18 @@ e^{-(t_{n-1}-\tau)/\tau_i}
 gives the recursion
 
 ```math
-\begin{aligned}
 J_i(t_n)
-&=e^{-(t_n-t_{n-1})/\tau_i}J_i(t_{n-1})\\
-&\quad+
+=
+e^{-(t_n-t_{n-1})/\tau_i}J_i(t_{n-1})
++
 \int_{t_{n-1}}^{t_n}
 e^{-(t_n-\tau)/\tau_i}
 \frac{d h^{3/2}(\tau)}{d\tau}\,d\tau
-\end{aligned}
 ```
 
 #### Piecewise-Linear Approximation
 
-\(h^{3/2}(t)\) is assumed to vary linearly between sampling points:
+$h^{3/2}(t)$ is assumed to vary linearly between sampling points:
 
 ```math
 \frac{d h^{3/2}(\tau)}{d\tau}
@@ -203,7 +202,7 @@ e^{-(t_n-\tau)/\tau_i}
 {t_n-t_{n-1}}
 ```
 
-with \(h_n=h(t_n)\). Evaluating the remaining integral gives
+with $h_n=h(t_n)$. Evaluating the remaining integral gives
 
 ```math
 J_i(t_n)
@@ -221,19 +220,11 @@ where
 \Delta t_n=t_n-t_{n-1}
 ```
 
-Only \(J_i(t_{n-1})\) is needed for each step, with \(J_i(t_0)=0\). The exponential integration is exact for a piecewise-linear \(h^{3/2}(t)\). This does not mean that \(h(t)\) itself is linear.
+Only $J_i(t_{n-1})$ is needed for each step, with $J_i(t_0)=0$. The exponential integration is exact for a piecewise-linear $h^{3/2}(t)$. This does not mean that $h(t)$ itself is linear.
 
 ### Force Expression
 
-Using
-
-\[
-\int_0^t \frac{d h^{3/2}}{d\tau}\,d\tau
-=
-h^{3/2}(t)-h^{3/2}(0),
-\]
-
-\(h(0)=0\), and the definition of \(J_i\):
+Using $\int_0^t \frac{d h^{3/2}}{d\tau}\,d\tau = h^{3/2}(t)-h^{3/2}(0)$, $h(0)=0$ and the definition of $J_i$:
 
 ```math
 P(t)=CG_0\left[
@@ -243,11 +234,11 @@ h^{3/2}(t)+
 \right]
 ```
 
-The force is linear in the unknown coefficients \(g_i\).
+The force is linear in the unknown coefficients $g_i$.
 
 ### Matrix Formulation
 
-Evaluating the force expression at the discrete sampling times \(t_1,\ldots,t_n\) gives a linear system in the unknown Prony coefficients. Both the force vector and the system matrix are normalized by the maximum measured force.
+Evaluating the force expression at the discrete sampling times $t_1,\ldots,t_n$ gives a linear system in the unknown Prony coefficients. To improve numerical conditioning and make the formulation independent of the force magnitude, both the force vector and the system matrix are normalized by the maximum measured force.
 
 The system is written as
 
@@ -281,9 +272,9 @@ h_n^{3/2} & J_1(t_n)-h_n^{3/2} & \cdots & J_p(t_n)-h_n^{3/2}
 \end{bmatrix}
 ```
 
-Here, \(P_{\max}\) is the maximum absolute force obtained from the FE simulation, and \(\mathbf{P}\) contains the corresponding measured force values.
+Here, $P_{\max}$ is the maximum absolute force obtained from the FE simulation, and $\mathbf{P}$ contains the corresponding measured force values.
 
-The first component of \(\mathbf{x}\) represents the instantaneous contribution and is fixed at one. The remaining components are the unknown Prony coefficients.
+The first component of $\mathbf{x}$ represents the instantaneous contribution and is fixed at one. The remaining components are the unknown Prony coefficients.
 
 The coefficients are determined through constrained least-squares fitting:
 
@@ -309,11 +300,11 @@ g_i\geq 0,
 \sum_{i=1}^{p}g_i\leq 1
 ```
 
-where \(\mathbf{D}\) is a second-difference matrix acting on the Prony coefficients. It is used to impose optional smoothness regularisation on the fitted coefficients.
+where $\mathbf{D}$ is a second-difference matrix used for optional smoothness regularisation of the fitted coefficient vector. It acts on the full vector $\mathbf{x}$, including the fixed first component $x_0=1$.
 
-The instantaneous shear modulus, \(G_0\), and Poisson's ratio, \(\nu\), are assumed known. The relaxation times, \(\tau_i\), are defined on a logarithmically spaced grid, with the range determined by the sampling interval and total test duration. A density of two terms per decade is used, as established by the convergence study.
+The instantaneous shear modulus, $G_0$, and Poisson's ratio, $\nu$, are assumed known. The relaxation times, $\tau_i$, are selected on a logarithmically spaced grid, with the range determined by the sampling interval and total test duration. A density of two terms per decade is used, as established by the convergence study.
 
-The regularisation parameter is set to \(\lambda=0\) in all cases, so no regularisation is applied.
+The Prony coefficients, $g_i$, are determined through constrained least-squares fitting. The regularisation parameter is set to $\lambda=0$ in all cases, so no regularisation is applied.
 
 ## Applicability of the Methods
 
@@ -341,9 +332,7 @@ The model agrees well with the analytical solution for reaction force, contact a
 
 *Figure 1. Axisymmetric FE mesh with specimen, infinite-element region and rigid indenter.*
 
-**Important:** After generating an input file from the `.cae` model, change the element type of the infinite-element region manually.
-
-From:
+**Important:** After generating an input file from the `.cae` model, manually change the element type declaration for the infinite-element region from:
 
 ```text
 *Element, type=CAX4
@@ -363,13 +352,13 @@ Frictionless tangential behavior. Normal contact is enforced with the direct met
 
 | Property | Symbol | Value |
 |---|---|---:|
-| Young's modulus | \(E\) | 476.0142 MPa |
-| Poisson's ratio | \(\nu\) | 0.48 |
-| Initial shear modulus | \(G_0\) | 160.8156 MPa |
+| Young's modulus | $E$ | 476.0142 MPa |
+| Poisson's ratio | $\nu$ | 0.48 |
+| Initial shear modulus | $G_0$ | 160.8156 MPa |
 
 The time-dependent response is an 11-term Prony series:
 
-| \(i\) | \(g_i\) | \(\tau_i\) (s) |
+| $i$ | $g_i$ | $\tau_i$ (s) |
 |---:|---:|---:|
 | 1 | 0.1621 | 0.0010 |
 | 2 | 0.2670 | 0.0036 |
@@ -413,13 +402,13 @@ RF2 and U2 are history output at the indenter reference point. CAREA and CFN2 ar
 
 The loading-time results in this README are obtained with `abaqus_fadil_equation_comparison.py`. It reads the indentation history from the `.odb`, applies both methods and compares them with the reference Prony-series response.
 
-`fadil_equation_13.py` is a standalone script. It reads `force_indenter.csv`, fits the Prony coefficients and plots \(G(t)\) and the fitted force. It is not used for the results shown here.
+`fadil_equation_13.py` is a standalone script. It reads `force_indenter.csv`, fits the Prony coefficients and plots $G(t)$ and the fitted force. It is not used for the results shown here.
 
 `fadil_equation_13_relaxation_time_convergence.py` is used for the relaxation-time convergence study.
 
 ### Convolution-Based Method
 
-The Prony-series convolution formulation described above is used. The convolution integrals are evaluated recursively using a piecewise-linear approximation of \(h^{3/2}(t)\).
+The Prony-series convolution formulation described above is used. The convolution integrals are evaluated recursively using a piecewise-linear approximation of $h^{3/2}(t)$.
 
 The coefficients are determined from the normalized system
 
@@ -427,13 +416,13 @@ The coefficients are determined from the normalized system
 \mathbf{A}\mathbf{x}=\mathbf{b}
 ```
 
-using constrained least squares, with \(x_0=1\), \(g_i\geq 0\) and \(\sum_{i=1}^{p}g_i\leq 1\). The measured FE forces and the system matrix are both normalized by the maximum measured force, \(P_{\max}\).
+using constrained least squares, with $x_0=1$, $g_i\geq 0$ and $\sum_{i=1}^{p}g_i\leq 1$. The measured FE forces and the system matrix are both normalized by the maximum measured force, $P_{\max}$.
 
-The instantaneous shear modulus, \(G_0\), is calculated from the elastic properties. The relaxation times are logarithmically spaced, using two terms per decade. The regularisation parameter is set to \(\lambda=0\), so no regularisation is applied.
+The instantaneous shear modulus, $G_0$, is calculated from the elastic properties. The relaxation times are logarithmically spaced, using two terms per decade. The regularisation parameter is set to $\lambda=0$, since the noise in the Abaqus data is negligible.
 
 ### Closed-Form Method
 
-Eq. (16) is evaluated using the measured force and the contact radius \(a=\sqrt{Rh}\) during the hold phase only:
+Eq. (16) is evaluated using the measured force and the contact radius $a=\sqrt{Rh}$ during the hold phase only:
 
 ```math
 G(t)=\frac{3}{8}\frac{(1-\nu)RP(t)}{a^3}
