@@ -387,7 +387,7 @@ def plot_results(
             markevery=list(marker_indices),
             zorder=4,
             label=(
-                f"Fadil et al., Equation (13) "
+                f"Fadil et al., Eq. (13) "
                 f"NRMSE = {normalized_modulus_rmse:.2f}%"
             ),
         )
@@ -420,7 +420,7 @@ def plot_results(
             linewidth=1.0,
             zorder=4,
             label=(
-                f"Fadil et al., Equation (13) "
+                f"Fadil et al., Eq. (13) "
                 f"NRMSE = {normalized_force_rmse:.2f}%"
             ),
         )

@@ -726,7 +726,7 @@ class ViscoelasticIndentation:
                 markevery=list(marker_indices_closed),
                 zorder=4,
                 label=(
-                    "Fadil et al., Equation (16)\n"
+                    "Fadil et al., Eq. (16)\n"
                     f"NRMSE = "
                     f"{self.closed_form_shear_modulus_normalized_rmse:.3f}%"
                 ),
@@ -745,7 +745,7 @@ class ViscoelasticIndentation:
                 markevery=list(marker_indices_numerical),
                 zorder=4,
                 label=(
-                    "Fadil et al., Equation (13)\n"
+                    "Fadil et al., Eq. (13)\n"
                     f"NRMSE = "
                     f"{self.numerical_shear_modulus_normalized_rmse:.3f}%"
                 ),
