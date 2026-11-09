@@ -294,7 +294,7 @@ g_i\geq 0,
 - $`\mathbf{D}`$: second-difference matrix for optional smoothness regularization
 - $`\lambda`$: regularization strength
 
-$`G_0`$ and $`\tau_i`$ are known, so only $`g_i`$ is determined. Currently $`\lambda=0`$ (no regularization).
+$`G_0`$ and $`\tau_i`$ are known, so only $`g_i`$ is determined. $`\lambda=0`$ is used in all cases. The noise in the Abaqus data is negligible, so smoothing is not needed.
 
 ## Applicability of the Methods
 
@@ -388,9 +388,15 @@ RF2 and U2 are history output at the indenter reference point. CAREA and CFN2 ar
 
 ## Numerical Implementation
 
+### Scripts
+
+All results in this README are obtained with `abaqus_fadil_equation_comparison.py`. It reads the indentation history from the `.odb`, applies both methods and compares them with the reference Prony-series response.
+
+`fadil_equation_13.py` is a standalone script. It reads `force_indenter.csv`, fits the Prony coefficients and plots $`G(t)`$ and the fitted force. It is not used for the results shown here.
+
 ### Convolution-Based Method
 
-`fadil_equation_13.py` uses the Prony-series convolution formulation described above. The coefficients $`g_i`$ are found from $`\mathbf{b}=\mathbf{B}\mathbf{g}`$ using constrained least squares with $`g_i\geq 0`$ and $`\sum g_i\leq 1`$. $`G_0`$ is calculated from the elastic properties and $`\lambda=0`$.
+The Prony-series convolution formulation described above is used. The coefficients $`g_i`$ are found from $`\mathbf{b}=\mathbf{B}\mathbf{g}`$ using constrained least squares with $`g_i\geq 0`$ and $`\sum g_i\leq 1`$. $`G_0`$ is calculated from the elastic properties. $`\lambda=0`$ is used since the noise in the Abaqus data is negligible.
 
 ### Closed-Form Method
 
