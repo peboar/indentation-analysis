@@ -1,4 +1,4 @@
-# Indentation Analysiss
+# Indentation Analysis
 
 Python tools for analyzing spherical indentation of linear-elastic and linear-viscoelastic materials. The repository includes implementations of analytical and numerical approaches for extracting material properties from indentation data, with particular emphasis on the viscoelastic method proposed by Fadil et al. (2017).
 
