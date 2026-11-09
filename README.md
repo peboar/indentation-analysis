@@ -113,7 +113,8 @@ For an isotropic linear-elastic material, $`E`$ and $`\nu`$ are used as the two 
 G_0=\frac{E}{2(1+\nu)}
 ```
 
-The instantaneous shear modulus, $G_0$, and Poisson's ratio, $\nu$, are assumed known. The time-dependent response is represented by a Prony series with logarithmically spaced relaxation times, $\tau_i$, selected based on the sampling interval and total test duration. The corresponding Prony coefficients, $g_i$, are determined through constrained least-squares fitting.
+$`G_0`$ and $`\nu`$ are assumed known. The time-dependent response is represented by a Prony series.
+
 ### Prony-Series Representation
 
 ```math
@@ -292,8 +293,7 @@ g_i\geq 0,
 - $`\mathbf{D}`$: second-difference matrix for optional smoothness regularization
 - $`\lambda`$: regularization strength
 
-$`G_0`$ and $`\tau_i`$ are known, so only $`g_i`$ is determined. $`\lambda=0`$ is used in all cases. The noise in the Abaqus data is negligible, so smoothing is not needed.
-
+The instantaneous shear modulus, $`G_0`$, and Poisson's ratio, $`\nu`$, are assumed known. The relaxation times, $`\tau_i`$, are defined on a logarithmically spaced grid, with the range determined by the sampling interval and total test duration. A density of two terms per decade is used, as established by the convergence study. The Prony coefficients, $`g_i`$, are determined through constrained least-squares fitting. The regularisation parameter is set to $`\lambda=0`$ in all cases, so no regularisation is applied.
 ## Applicability of the Methods
 
 The convolution-based method recovers the shear relaxation response from the force and depth histories. It assumes a monotonically increasing indentation history (ramp followed by hold). The recursive formulation is a numerical way of evaluating the Prony-series convolution integral. It is not Eq. (13) itself.
